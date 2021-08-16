@@ -1,0 +1,17 @@
+{
+  "name": "stellar-aaas",
+  "main": "index.js",
+  "author": "ralphilius <ralphilius@gmail.com>",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@replit/database": "^2.0.1",
+    "@types/express": "^4.17.13",
+    "@types/node": "^16.6.1",
+    "express": "^4.17.1",
+    "nanoid": "^3.1.25",
+    "stellar-sdk": "^8.2.5"
+  }
+}
