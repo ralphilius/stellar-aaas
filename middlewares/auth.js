@@ -7,11 +7,11 @@ module.exports = function() {
       return res.status(401).end(); // Invalid/Missing API Key
     } else {
       const apiKey = headers["authorization"].split("Bearer ")[1];
-      getToken(apiKey).then(username => {
-        if (!username) return res.status(401).end(); // Invalid API Key
+      getToken(apiKey).then(userId => {
+        if (!userId) return res.status(401).end(); // Invalid API Key
 
         req.user = {};
-        req.user.username = username;
+        req.user.id = userId;
         next();
       }).catch((e) => res.status(500).end());
     }

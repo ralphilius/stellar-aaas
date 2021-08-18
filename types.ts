@@ -2,7 +2,8 @@ import { Request } from 'express';
 
 export type RequestWithUser = Request & {
   user: {
-    username: string
+    id: string
+    username?: string
   }
 }
 

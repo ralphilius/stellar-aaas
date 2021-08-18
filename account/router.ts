@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { User, RequestWithUser } from '../types';
 const router = require('express').Router();
-import { getUser, createUser } from '../utils/database';
+import { getUser, createUser, getUserById } from '../utils/database';
 import { securePassword, validPassword, validUsername } from '../utils/account';
 
 import { nanoid } from 'nanoid';
@@ -28,7 +28,7 @@ function createCustomer(req: Request, res: Response) {
       const { salt, hash } = securePassword(password);
       const apiKey = nanoid(32);
 
-      return createUser(username, { salt, hash, apiKey, balance: '0' });
+      return createUser(username, { salt, hash, apiKey, balance: '100' }); // Give each user 100 XLM to try out service
     })
     .then(() => {
       res.status(204).end();
@@ -57,20 +57,20 @@ function login(req: Request, res: Response) {
 }
 
 async function getAccountInfo(req: RequestWithUser, res: Response) {
-  const { username } = req.user;
+  const { id } = req.user;
   const stellar = await StellarCustodial.initialize();
-  const muxedAccount = stellar.getMuxedAccount(username);
+  const muxedAccount = stellar.muxedFromId(id);
+  const user = await getUserById(id);
   console.log(muxedAccount);
-  return res.json(muxedAccount);
-  res.json({
+  //return res.json(muxedAccount);
+  return res.json({
     address: muxedAccount.accountId(),
+    balance: user['balance']
   })
 }
 
 router.post('/register', validateHeader, validateRequest, createCustomer);
-router.get('/register', validateHeader, validateRequest, createCustomer);
 router.post('/login', validateHeader, validateRequest, login);
-router.get('/login', validateRequest, login);
 router.get('/info', auth, getAccountInfo);
 
 

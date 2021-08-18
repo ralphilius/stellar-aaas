@@ -1,1 +1,1 @@
-{"version":2,"languages":{"nodejs-npm":{"specfileHash":"e489d6559ba7b108da77f06c44d9abb3","lockfileHash":"9551d71d1ab86ff9c775d681150dc2f6","guessedImports":["nanoid","@replit/database","stellar-sdk","express"],"guessedImportsHash":"94ff38ead5a6ab033ccdabfacbd2b612"}}}
+{"version":2,"languages":{"nodejs-npm":{"specfileHash":"e489d6559ba7b108da77f06c44d9abb3","lockfileHash":"9551d71d1ab86ff9c775d681150dc2f6","guessedImports":["@replit/database","stellar-sdk","express","nanoid"],"guessedImportsHash":"109f5b3fcbb6874b1abaf01f972a091b"}}}

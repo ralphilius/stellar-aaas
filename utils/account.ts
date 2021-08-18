@@ -1,11 +1,13 @@
 import * as crypto from "crypto";
 import { getUser, getToken } from './database'
+const { customAlphabet } = require('nanoid');
+const nanoid = customAlphabet('0123456789', 36);
 const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
 
 // Muxed account can only accept number, so we need to convert username string to a number.
 export function usernameForId(username: string): string {
   //return username.split('').map(c => c.charCodeAt(0)).join('');
-  return parseInt(username.toLowerCase(), 36).toString();
+  return `${BigInt(parseInt(username.toLowerCase(), 36)).toString()}`;
 }
 
 export function validUsername(username: string){

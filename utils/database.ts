@@ -5,8 +5,12 @@ const db = new Database();
 
 export async function createUser(username: string, data: User) {
   const userId = usernameForId(username);
-  setToken(data.apiKey, userId); // Replit Database is a key-value database without query capability, so this will help to validate API key later.
+  setToken(data.apiKey, username); // Replit Database is a key-value database without query capability, so this will help to validate API key later.
   return db.set(`user-${userId}`, data);
+}
+
+export async function updateUser(userId: string, data: User) {
+  return db.set(`user-${userId}`, data)
 }
 
 export async function getUser(username: string) {
@@ -14,7 +18,7 @@ export async function getUser(username: string) {
   return db.get(`user-${userId}`);
 }
 
-export async function getUserById(userId: string){
+export async function getUserById(userId: string): Promise<User>{
   return db.get(`user-${userId}`);
 }
 

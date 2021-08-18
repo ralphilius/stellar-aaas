@@ -4,7 +4,10 @@ import {
   MuxedAccount,
   TransactionBuilder
 } from 'stellar-sdk'
-import { getUserById } from './database';
+import { getUserById, updateUser } from './database';
+import { usernameForId } from './account';
+import { User } from '../types'
+
 const server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
 const custodialKey = StellarSdk.Keypair.fromSecret("SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU");
 
@@ -32,8 +35,8 @@ function isAnyAccountMuxed(...args: Array<string | Account | MuxedAccount>): boo
     .reduce((t, v) => t || v, false);
 }
 
-function isWithinMuxedBase(source: string | Account | MuxedAccount, dest: string | Account | MuxedAccount) {
-  return isMuxedAccount(source) && isMuxedAccount(dest) && (source as MuxedAccount).baseAccount() == (dest as MuxedAccount).baseAccount();
+function isWithinMuxedBase(source: MuxedAccount, dest: MuxedAccount) {
+  return source.baseAccount().accountId() == dest.baseAccount().accountId();
 }
 
 class StellarCustodial {
@@ -41,37 +44,73 @@ class StellarCustodial {
 
   private constructor(private account: Account) {
     this.CUSTODIAL_ACCOUNT = account;
+    console.log(account.accountId());
   }
 
-  public getMuxedAccount(username: string): MuxedAccount {
-    const userId = username.split('').map(c => c.charCodeAt(0)).join('');
+  public usernameForMuxed(username: string): MuxedAccount {
+    const userId = usernameForId(username);
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
   }
 
-  public getMuxedBalance(acc: MuxedAccount) {
-    getUserById(acc.accountId())
+  public muxedFromId(userId: string): MuxedAccount {
+    return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
   }
 
-  public async makePayment(source: string | Account | MuxedAccount, dest: string | Account | MuxedAccount, amount: string): Promise<any> {
-
-    if (isWithinMuxedBase(source, dest)) {
-      const sourceMuxed = this.parseMuxedAccount((source as string | MuxedAccount));
-      const destMuxed = this.parseMuxedAccount((dest as string | MuxedAccount));
+  public async getBaseMuxedBalance(acc: MuxedAccount): Promise<string | null> {
+    try {
+      const user: User = await getUserById(acc.id());
+      return user.balance;
+    } catch (e) {
+      console.error(e);
+      return null;
     }
 
-    return loadAccount(source)
+  }
+
+  public async makePayment(source: string, dest: string, amount: string): Promise<any> {
+    const sourceMuxed = this.baseMuxedFromAddress(source);
+    const sourceUser = await getUserById(sourceMuxed.id());
+
+    if (!sourceUser) throw new Error('source-not-found');
+
+    if (sourceUser.balance < amount) throw new Error("insufficient-balance")
+
+    if (isMuxedAccount(source) && isMuxedAccount(dest)) {
+      const destMuxed = this.baseMuxedFromAddress(dest);
+      
+      if (isWithinMuxedBase(sourceMuxed, destMuxed)) {
+        const destUser = await getUserById(destMuxed.id());
+
+        if (!destUser) throw new Error('destination-not-found');
+
+        await updateUser(sourceMuxed.id(), {
+          ...sourceUser,
+          balance: (parseFloat(sourceUser.balance) - parseFloat(amount)).toString()
+        })
+        await updateUser(destMuxed.id(), {
+          ...destUser,
+          balance: (parseFloat(destUser.balance) + parseFloat(amount)).toString()
+        });
+        return {
+          toLedger: false
+        }
+      }
+    }
+
+    // muxed to outside should reduce balance & revert on failure
+    return loadAccount(sourceMuxed)
       .then((accountForPayment: Account) => {
         let payment = StellarSdk.Operation.payment({
-          source: typeof source == 'string' ? source : source.accountId(),
-          destination: typeof dest == 'string' ? dest : dest.accountId(),
+          source: sourceMuxed.accountId(),
+          destination: dest,
           asset: Asset.native(),
           amount: amount,
-          withMuxing: isAnyAccountMuxed(source, dest),
+          withMuxing: isAnyAccountMuxed(sourceMuxed, dest),
         });
 
         let tx = new TransactionBuilder(accountForPayment, {
           networkPassphrase: StellarSdk.Networks.TESTNET,
-          withMuxing: isAnyAccountMuxed(source, dest),
+          withMuxing: isAnyAccountMuxed(sourceMuxed, dest),
           fee: '100',
         })
           .addOperation(payment)
@@ -80,11 +119,20 @@ class StellarCustodial {
 
         tx.sign(custodialKey);
         return server.submitTransaction(tx);
+      }).then(async (tx) => {
+        await updateUser(sourceMuxed.id(), {
+          ...sourceUser,
+          balance: (parseFloat(sourceUser.balance) - parseFloat(amount)).toString()
+        })
+        return {
+          toLedger: true,
+          data: tx
+        }
       });
   }
 
-  parseMuxedAccount(acc: string | MuxedAccount) {
-    if (typeof acc == 'string') return new MuxedAccount(this.CUSTODIAL_ACCOUNT, acc);
+  baseMuxedFromAddress(acc: string | MuxedAccount) {
+    if (typeof acc == 'string') return MuxedAccount.fromAddress(acc, this.CUSTODIAL_ACCOUNT.sequenceNumber());
 
     return acc;
   }
@@ -95,17 +143,5 @@ class StellarCustodial {
   }
 
 }
-
-// const { custodialKey: CUSTODIAL_ACCOUNT } = await preamble();
-
-// async function preamble(){
-//   const custodialKey = StellarSdk.Keypair.fromSecret("...");
-//   const custodialAccount = await server.loadAccount(custodialKey.publicKey());
-//   return { custodialKey, custodialAccount}
-// }
-
-// function retrieveAccount(accountId: string){
-//   return server.loadAccount(accountId)
-// }
 
 export default StellarCustodial;
