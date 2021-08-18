@@ -1,7 +1,7 @@
 const Database = require("@replit/database");
 import { User } from '../types';
 import { usernameForId } from './account';
-const db = new Database();
+const db = new Database(process.env.CUSTOM_DB || null);
 
 export async function createUser(username: string, data: User) {
   const userId = usernameForId(username);

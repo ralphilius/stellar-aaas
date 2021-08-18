@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "lib": ["esnext", "dom"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "esModuleInterop": true,
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "app",
@@ -10,8 +14,19 @@
     "allowJs": true,
     "sourceMap": true,
     "inlineSources": true,
-    "types": ["node"],
+    "types": [
+      "node",
+      "mocha"
+    ],
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true
-  }
+    "experimentalDecorators": true,
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "./tests/",
+    "./node_modules/",
+    "./app/"
+  ],
 }

@@ -61,8 +61,6 @@ async function getAccountInfo(req: RequestWithUser, res: Response) {
   const stellar = await StellarCustodial.initialize();
   const muxedAccount = stellar.muxedFromId(id);
   const user = await getUserById(id);
-  console.log(muxedAccount);
-  //return res.json(muxedAccount);
   return res.json({
     address: muxedAccount.accountId(),
     balance: user['balance']
