@@ -7,7 +7,6 @@ import validateHeader from '../middlewares/header-validator';
 
 async function makePayment(req: RequestWithUser, res: Response){
   const { destination, amount } = req.body;
-  console.log(req.user);
   
   if(!destination || !amount) return res.status(400).end();
 

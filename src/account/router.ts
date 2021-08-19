@@ -19,7 +19,9 @@ function validateRequest(req: Request, res: Response, next: NextFunction) {
 
 function createCustomer(req: Request, res: Response) {
   const { username, password } = req.body;
-  if (!validUsername(username)) return res.status(400).end();
+  if (!validUsername(username)) return res.status(400).json({
+    message: "username must be between 4 to 12 alphanumeric characters"
+  });
 
   getUser(username)
     .then((user: User) => {

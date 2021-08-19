@@ -41,15 +41,19 @@ function isWithinMuxedBase(source: MuxedAccount, dest: MuxedAccount) {
 
 class StellarCustodial {
   CUSTODIAL_ACCOUNT: Account;
+  static _instance: StellarCustodial;
 
   private constructor(private account: Account) {
     this.CUSTODIAL_ACCOUNT = account;
-    console.log(account.accountId());
   }
 
   public usernameForMuxed(username: string): MuxedAccount {
     const userId = usernameForId(username);
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
+  }
+
+  muxedFromAddress(address: string): MuxedAccount {
+    return MuxedAccount.fromAddress(address, this.CUSTODIAL_ACCOUNT.sequenceNumber());
   }
 
   public muxedFromId(userId: string): MuxedAccount {
@@ -68,7 +72,7 @@ class StellarCustodial {
   }
 
   public async makePayment(source: string, dest: string, amount: string): Promise<any> {
-    const sourceMuxed = this.baseMuxedFromAddress(source);
+    const sourceMuxed = this.muxedFromAddress(source);
     const sourceUser = await getUserById(sourceMuxed.id());
 
     if (!sourceUser) throw new Error('source-not-found');
@@ -76,8 +80,8 @@ class StellarCustodial {
     if (sourceUser.balance < amount) throw new Error("insufficient-balance")
 
     if (isMuxedAccount(source) && isMuxedAccount(dest)) {
-      const destMuxed = this.baseMuxedFromAddress(dest);
-      
+      const destMuxed = this.muxedFromAddress(dest);
+
       if (isWithinMuxedBase(sourceMuxed, destMuxed)) {
         const destUser = await getUserById(destMuxed.id());
 
@@ -131,15 +135,14 @@ class StellarCustodial {
       });
   }
 
-  baseMuxedFromAddress(acc: string | MuxedAccount) {
-    if (typeof acc == 'string') return MuxedAccount.fromAddress(acc, this.CUSTODIAL_ACCOUNT.sequenceNumber());
-
-    return acc;
-  }
+  
 
   public static async initialize(): Promise<StellarCustodial> {
     const account = await server.loadAccount(custodialKey.publicKey());
-    return new StellarCustodial(account);
+
+    if (!StellarCustodial._instance) StellarCustodial._instance = new StellarCustodial(account);
+
+    return StellarCustodial._instance;
   }
 
 }

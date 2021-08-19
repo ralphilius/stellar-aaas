@@ -9,14 +9,12 @@ const db = new Database(process.env.CUSTOM_DB || null);
 chai.use(chaiHttp);
 chai.should();
 
-const USERNAME = 'ralphiliustest';
-const USER_ID = '4655947712959450972160'
+const USERNAME = 'ralphilius';
+const USER_ID = '2772031055288500'
 
 describe("account registration works", () => {
   before(async () => {
-    return db.empty().then(() => {
-      console.log("db empty");
-    })
+    return db.empty();
   });
 
   describe('POST /api/register', () => {
