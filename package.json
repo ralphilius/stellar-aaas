@@ -1,6 +1,6 @@
 {
   "name": "stellar-aaas",
-  "main": "index.js",
+  "main": "app/index.js",
   "author": "ralphilius <ralphilius@gmail.com>",
   "engines": {
     "node": ">=14.0.0"

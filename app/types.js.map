@@ -1,0 +1,1 @@
+{"version":3,"file":"types.js","sourceRoot":"","sources":["../src/types.ts"],"names":[],"mappings":"","sourcesContent":["import { Request } from 'express';\n\nexport type RequestWithUser = Request & {\n  user: {\n    id: string\n    username?: string\n  }\n}\n\nexport type User = {\n  salt: string\n  hash: string\n  apiKey: string\n  balance: string\n}"]}
