@@ -9,7 +9,9 @@ async function makePayment(req: RequestWithUser, res: Response){
   const { destination, amount } = req.body;
   
   if(!destination || !amount) return res.status(400).end();
-
+  
+  if(parseInt(amount) < 0) return res.status(400).end();
+  
   try {
     const stellar = await StellarCustodial.initialize();
     const source = stellar.muxedFromId(req.user.id);
