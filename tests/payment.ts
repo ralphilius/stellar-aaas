@@ -17,7 +17,8 @@ const MPUBKEY_TYLER = "MCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPMAAAA
 const MPUBKEY_RANDOM = "MCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPN7777777777774Y7C";
 const MUSER_RANDOM = '18446744073709551615';
 
-describe("payment works", () => {
+describe("payment works", function(){
+  this.timeout(30000)
   let apiKey: string = '', balance = 100;
   let requester = chai.request(app).keepOpen();
   before(async () => {
@@ -42,7 +43,7 @@ describe("payment works", () => {
   describe("payment made to unmuxed account", () => {
     let pair1: Keypair, pair2: Keypair;
     before(function(){
-      this.timeout(5000);
+      //this.timeout(10000);
       pair1 = StellarSdk.Keypair.random();
       pair2 = StellarSdk.Keypair.random();
       
@@ -53,7 +54,7 @@ describe("payment works", () => {
     })
 
     it("should pay to existing account", function(done) {
-      this.timeout(10000);
+      //this.timeout(20000);
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
@@ -73,7 +74,7 @@ describe("payment works", () => {
     })
 
     it("should not pay to non-existent customer", function(done) {
-      this.timeout(10000);
+      //this.timeout(10000);
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
@@ -90,7 +91,7 @@ describe("payment works", () => {
 
   describe("payment made to muxed account in same base", () => {
     it("should pay to existing customer", function(done) {
-      this.timeout(5000);
+      //this.timeout(20000);
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
@@ -109,8 +110,36 @@ describe("payment works", () => {
         });
     })
 
+    it("should not pay with negative amount", function(done) {
+      //this.timeout(5000);
+      requester.post('/api/pay')
+        .set("authorization", `Bearer ${apiKey}`)
+        .set('content-type', 'application/json')
+        .send({ destination: MPUBKEY_TYLER, amount: "-1" })
+        .then((res) => {
+          expect(res).to.have.status(400);
+          done();
+        }).catch(err => {
+          throw err
+        });
+    })
+
+    it("should not pay with insufficient balance", function(done) {
+      //this.timeout(20000);
+      requester.post('/api/pay')
+        .set("authorization", `Bearer ${apiKey}`)
+        .set('content-type', 'application/json')
+        .send({ destination: MPUBKEY_TYLER, amount: "200" })
+        .then((res) => {
+          expect(res).to.have.status(409);
+          done();
+        }).catch(err => {
+          throw err
+        });
+    })
+
     it("should not pay to non-existent customer", function(done) {
-      this.timeout(5000);
+      //this.timeout(20000);
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')

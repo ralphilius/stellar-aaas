@@ -74,10 +74,10 @@ class StellarCustodial {
   public async makePayment(source: string, dest: string, amount: string): Promise<any> {
     const sourceMuxed = this.muxedFromAddress(source);
     const sourceUser = await getUserById(sourceMuxed.id());
-
+    console.log(sourceUser);
     if (!sourceUser) throw new Error('source-not-found');
-
-    if (sourceUser.balance < amount) throw new Error("insufficient-balance")
+    console.log(sourceUser.balance, amount, sourceUser.balance < amount)
+    if (parseFloat(sourceUser.balance) < parseFloat(amount)) throw new Error("insufficient-balance")
 
     if (isMuxedAccount(source) && isMuxedAccount(dest)) {
       const destMuxed = this.muxedFromAddress(dest);
@@ -132,6 +132,12 @@ class StellarCustodial {
           toLedger: true,
           data: tx
         }
+      }).catch(async (e) => {
+        await updateUser(sourceMuxed.id(), {
+          ...sourceUser,
+          balance: (parseFloat(sourceUser.balance)).toString()
+        })
+        throw e;
       });
   }
 
