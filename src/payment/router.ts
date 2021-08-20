@@ -21,7 +21,6 @@ async function makePayment(req: RequestWithUser, res: Response){
       res.status(204).end();
     }
   } catch (e) {
-    console.error(e);
     if(e.message){
       switch(e.message){
         case 'source-not-found':
@@ -37,9 +36,9 @@ async function makePayment(req: RequestWithUser, res: Response){
       const result_codes = ((((e || {}).response || {}).data || {}).extras || {}).result_codes;
       if(result_codes.operations?.includes("op_no_destination")) return res.status(404).end();
 
-      res.status(500).end();
+      res.status(500).json({error: e.message});
     } else {
-      res.status(500).end();
+      res.status(500).json({error: e.message});
     }
   }
   

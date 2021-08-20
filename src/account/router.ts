@@ -38,7 +38,7 @@ function createCustomer(req: Request, res: Response) {
     .catch((e: Error) => {
       if (e.message == 'account-exists') return res.status(409).end();
 
-      res.status(500).json(e);
+      res.status(500).json({error: e.message});
     });
 
 }
