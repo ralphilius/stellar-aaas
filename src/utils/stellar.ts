@@ -59,7 +59,7 @@ class StellarCustodial {
     return MuxedAccount.fromAddress(address, this.CUSTODIAL_ACCOUNT.sequenceNumber());
   }
 
-  public static async updateAccountBalance(accountId: string | undefined, balance: string) {
+  public async updateAccountBalance(accountId: string | undefined, balance: string) {
     const user: User = await getUserById(accountId);
     if (accountId && user) {
       updateUser(accountId, {
@@ -73,7 +73,8 @@ class StellarCustodial {
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
   }
 
-  public static listenForPayements() {
+  public static async listenForPayements() {
+    const stellar = await this.initialize();
     server
       .payments()
       .forAccount(CUSTODIAL_KEY.publicKey())
@@ -82,7 +83,7 @@ class StellarCustodial {
       .stream({
         onmessage: (payment: any) => { // stellar-sdk doesn't have working type for muxed account yet
           const { to_muxed_id, amount } = payment;
-          StellarCustodial.updateAccountBalance(to_muxed_id, amount);
+          stellar.updateAccountBalance(to_muxed_id, amount);
         },
       });
   }
@@ -96,7 +97,7 @@ class StellarCustodial {
           .forEach(async (record: ServerApi.PaymentOperationRecord & { to_muxed?: string, to_muxed_id?: string }) => {
             const { to_muxed_id, amount } = record;
             //TODO: For simplicity, check for previous completed deposit is ignored
-            StellarCustodial.updateAccountBalance(to_muxed_id, amount);
+            this.updateAccountBalance(to_muxed_id, amount);
           });
       })
   }
@@ -117,14 +118,8 @@ class StellarCustodial {
 
         if (!destUser) throw new Error('destination-not-found');
 
-        await updateUser(sourceMuxed.id(), {
-          ...sourceUser,
-          balance: (parseFloat(sourceUser.balance) - parseFloat(amount)).toString()
-        })
-        await updateUser(destMuxed.id(), {
-          ...destUser,
-          balance: (parseFloat(destUser.balance) + parseFloat(amount)).toString()
-        });
+        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance) - parseFloat(amount)).toString())
+        this.updateAccountBalance(destMuxed.id(), (parseFloat(destUser.balance) + parseFloat(amount)).toString())
         return {
           toLedger: false
         }
@@ -154,19 +149,17 @@ class StellarCustodial {
         tx.sign(CUSTODIAL_KEY);
         return server.submitTransaction(tx);
       }).then(async (tx) => {
-        await updateUser(sourceMuxed.id(), {
-          ...sourceUser,
-          balance: (parseFloat(sourceUser.balance) - parseFloat(amount)).toString()
-        })
+        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance) - parseFloat(amount)).toString())
         return {
           toLedger: true,
           data: tx
         }
       }).catch(async (e) => {
-        await updateUser(sourceMuxed.id(), {
-          ...sourceUser,
-          balance: (parseFloat(sourceUser.balance)).toString()
-        })
+        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance)).toString())
+        // await updateUser(sourceMuxed.id(), {
+        //   ...sourceUser,
+        //   balance: (parseFloat(sourceUser.balance)).toString()
+        // })
         throw e;
       });
   }
