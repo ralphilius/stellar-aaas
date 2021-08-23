@@ -10,6 +10,7 @@ import {
 import { getUserById, updateUser } from './database';
 import { usernameForId } from './account';
 import { User } from '../types'
+import { BigNumber } from 'bignumber.js';
 
 const server: Server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
 export const CUSTODIAL_KEY: Keypair = StellarSdk.Keypair.fromSecret(process.env.STELLAR_SECRET);
@@ -64,7 +65,9 @@ class StellarCustodial {
     if (accountId && user) {
       updateUser(accountId, {
         ...user,
-        ...{ balance: (parseFloat(user.balance) + parseFloat(balance)).toString() }
+        ...{
+          balance: (new BigNumber(balance)).toString()
+        }
       })
     }
   }
@@ -108,7 +111,7 @@ class StellarCustodial {
 
     if (!sourceUser) throw new Error('source-not-found');
 
-    if (parseFloat(sourceUser.balance) < parseFloat(amount)) throw new Error("insufficient-balance")
+    if (new BigNumber(sourceUser.balance).lt(new BigNumber(amount))) throw new Error("insufficient-balance")
 
     if (isMuxedAccount(source) && isMuxedAccount(dest)) {
       const destMuxed = this.muxedFromAddress(dest);
@@ -117,9 +120,9 @@ class StellarCustodial {
         const destUser = await getUserById(destMuxed.id());
 
         if (!destUser) throw new Error('destination-not-found');
-
-        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance) - parseFloat(amount)).toString())
-        this.updateAccountBalance(destMuxed.id(), (parseFloat(destUser.balance) + parseFloat(amount)).toString())
+        
+        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).minus(amount).toString())
+        this.updateAccountBalance(destMuxed.id(), BigNumber.sum(destUser.balance, amount).toString())
         return {
           toLedger: false
         }
@@ -149,17 +152,13 @@ class StellarCustodial {
         tx.sign(CUSTODIAL_KEY);
         return server.submitTransaction(tx);
       }).then(async (tx) => {
-        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance) - parseFloat(amount)).toString())
+        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).minus(amount).toString())
         return {
           toLedger: true,
           data: tx
         }
       }).catch(async (e) => {
-        this.updateAccountBalance(sourceMuxed.id(), (parseFloat(sourceUser.balance)).toString())
-        // await updateUser(sourceMuxed.id(), {
-        //   ...sourceUser,
-        //   balance: (parseFloat(sourceUser.balance)).toString()
-        // })
+        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).toString())
         throw e;
       });
   }
