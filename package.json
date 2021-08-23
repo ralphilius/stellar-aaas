@@ -6,11 +6,11 @@
     "node": ">=14.0.0"
   },
   "scripts": {
-    "test": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
+    "test": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
     "build": "npx tsc",
-    "dev": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co ts-node src/index.ts",
-    "start": "npm run build && node app/index.js",
-    "start:watch": "./node_modules/nodemon/bin/nodemon.js"
+    "dev": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' ts-node src/index.ts",
+    "start": "STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' npm run build && node app/index.js",
+    "watch": "./node_modules/nodemon/bin/nodemon.js"
   },
   "license": "MIT",
   "dependencies": {
@@ -30,7 +30,8 @@
     "chai-http": "^4.3.0",
     "mocha": "^9.0.3",
     "nodemon": "^2.0.12",
-    "ts-node": "^10.2.0"
+    "ts-node": "^10.2.0",
+    "typescript": "^4.3.5"
   },
   "nodemonConfig": {
     "ignore": [
@@ -42,7 +43,7 @@
     "watch": [
       "src"
     ],
-    "exec": "npm dev",
+    "exec": "npm run dev",
     "ext": "ts"
   }
 }
