@@ -6,10 +6,11 @@
     "node": ">=14.0.0"
   },
   "scripts": {
-    "test": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
+    "test": "PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
     "build": "npx tsc",
-    "dev": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' ts-node src/index.ts",
-    "start": "STELLAR_SECRET='SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU' npm run build && node app/index.js",
+    "dev": "ts-node src/index.ts",
+    "init": "npx envdist",
+    "start": "npm run build && node app/index.js",
     "watch": "./node_modules/nodemon/bin/nodemon.js"
   },
   "license": "MIT",
