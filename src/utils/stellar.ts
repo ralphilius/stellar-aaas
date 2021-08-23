@@ -1,15 +1,18 @@
 const StellarSdk = require("stellar-sdk");
 import {
   Account, Asset,
+  Keypair,
   MuxedAccount,
+  Server,
+  ServerApi,
   TransactionBuilder
 } from 'stellar-sdk'
 import { getUserById, updateUser } from './database';
 import { usernameForId } from './account';
 import { User } from '../types'
 
-const server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
-const custodialKey = StellarSdk.Keypair.fromSecret("SBEQ44JMAS4UW3GOXWNSDD3QYKM56IYK247CWAXFMR4PRSGUVRFSMUOU");
+const server: Server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
+export const CUSTODIAL_KEY: Keypair = StellarSdk.Keypair.fromSecret(process.env.STELLAR_SECRET);
 
 async function loadAccount(account: string | Account | MuxedAccount): Promise<Account> {
   let publicKey = null;
@@ -56,27 +59,55 @@ class StellarCustodial {
     return MuxedAccount.fromAddress(address, this.CUSTODIAL_ACCOUNT.sequenceNumber());
   }
 
+  public static async updateAccountBalance(accountId: string | undefined, balance: string) {
+    const user: User = await getUserById(accountId);
+    if (accountId && user) {
+      updateUser(accountId, {
+        ...user,
+        ...{ balance: (parseFloat(user.balance) + parseFloat(balance)).toString() }
+      })
+    }
+  }
+
   public muxedFromId(userId: string): MuxedAccount {
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
   }
 
-  public async getBaseMuxedBalance(acc: MuxedAccount): Promise<string | null> {
-    try {
-      const user: User = await getUserById(acc.id());
-      return user.balance;
-    } catch (e) {
-      console.error(e);
-      return null;
-    }
+  public static listenForPayements() {
+    server
+      .payments()
+      .forAccount(CUSTODIAL_KEY.publicKey())
+      .join("transactions")
+      .cursor("now")
+      .stream({
+        onmessage: (payment: any) => { // stellar-sdk doesn't have working type for muxed account yet
+          console.log(payment)
+          const { to_muxed_id, amount } = payment;
+          StellarCustodial.updateAccountBalance(to_muxed_id, amount);
+        },
+      });
+  }
 
+  public async accreditAccount(txHash: string) {
+    return server.payments()
+      .forTransaction(txHash)
+      .call()
+      .then(page => {
+        page.records.filter((record: ServerApi.PaymentOperationRecord & { to_muxed?: string, to_muxed_id?: string }) => record.to == this.CUSTODIAL_ACCOUNT.accountId())
+          .forEach(async (record: ServerApi.PaymentOperationRecord & { to_muxed?: string, to_muxed_id?: string }) => {
+            const { to_muxed_id, amount } = record;
+            //TODO: For simplicity, check for previous completed deposit is ignored
+            StellarCustodial.updateAccountBalance(to_muxed_id, amount);
+          });
+      })
   }
 
   public async makePayment(source: string, dest: string, amount: string): Promise<any> {
     const sourceMuxed = this.muxedFromAddress(source);
     const sourceUser = await getUserById(sourceMuxed.id());
-    console.log(sourceUser);
+
     if (!sourceUser) throw new Error('source-not-found');
-    
+
     if (parseFloat(sourceUser.balance) < parseFloat(amount)) throw new Error("insufficient-balance")
 
     if (isMuxedAccount(source) && isMuxedAccount(dest)) {
@@ -121,7 +152,7 @@ class StellarCustodial {
           .setTimeout(30)
           .build();
 
-        tx.sign(custodialKey);
+        tx.sign(CUSTODIAL_KEY);
         return server.submitTransaction(tx);
       }).then(async (tx) => {
         await updateUser(sourceMuxed.id(), {
@@ -142,7 +173,7 @@ class StellarCustodial {
   }
 
   public static async initialize(): Promise<StellarCustodial> {
-    const account = await server.loadAccount(custodialKey.publicKey());
+    const account = await server.loadAccount(CUSTODIAL_KEY.publicKey());
 
     if (!StellarCustodial._instance) StellarCustodial._instance = new StellarCustodial(account);
 

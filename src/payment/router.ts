@@ -45,6 +45,22 @@ async function makePayment(req: RequestWithUser, res: Response) {
   }
 }
 
+async function accreditAccount(req: RequestWithUser, res: Response) {
+  const { txHash } = req.params;
+
+  try {
+    const stellar = await StellarCustodial.initialize();
+    stellar.accreditAccount(txHash)
+      .then(() => {
+        res.json({status: "success"})
+      })
+      .catch(e => res.status(500).json(e));
+  } catch (error) {
+    res.status(500).json(error)
+  }
+}
+
 router.post('/pay', validateHeader, auth, makePayment);
+router.post('/deposit/:txHash', validateHeader, auth, accreditAccount)
 
 module.exports = router;

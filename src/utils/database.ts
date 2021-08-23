@@ -18,7 +18,7 @@ export async function getUser(username: string) {
   return db.get(`user-${userId}`);
 }
 
-export async function getUserById(userId: string): Promise<User>{
+export async function getUserById(userId: string | null | undefined): Promise<User>{
   return db.get(`user-${userId}`);
 }
 
