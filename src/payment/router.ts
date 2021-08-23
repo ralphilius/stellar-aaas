@@ -4,13 +4,14 @@ const auth = require('../middlewares/auth')();
 const router = require('express').Router();
 import StellarCustodial from '../utils/stellar';
 import validateHeader from '../middlewares/header-validator';
+import { BigNumber } from 'bignumber.js';
 
 async function makePayment(req: RequestWithUser, res: Response) {
   const { destination, amount }: { destination: string, amount: string } = req.body;
 
   if (!destination || !amount) return res.status(400).end();
 
-  if (parseInt(amount) < 0) return res.status(400).end();
+  if(new BigNumber(amount).lt(0)) return res.status(400).end();
 
   try {
     const stellar = await StellarCustodial.initialize();
