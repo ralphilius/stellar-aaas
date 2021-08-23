@@ -76,7 +76,7 @@ class StellarCustodial {
     const sourceUser = await getUserById(sourceMuxed.id());
     console.log(sourceUser);
     if (!sourceUser) throw new Error('source-not-found');
-    console.log(sourceUser.balance, amount, sourceUser.balance < amount)
+    
     if (parseFloat(sourceUser.balance) < parseFloat(amount)) throw new Error("insufficient-balance")
 
     if (isMuxedAccount(source) && isMuxedAccount(dest)) {
@@ -140,8 +140,6 @@ class StellarCustodial {
         throw e;
       });
   }
-
-  
 
   public static async initialize(): Promise<StellarCustodial> {
     const account = await server.loadAccount(custodialKey.publicKey());
