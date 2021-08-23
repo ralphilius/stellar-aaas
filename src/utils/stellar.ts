@@ -81,7 +81,6 @@ class StellarCustodial {
       .cursor("now")
       .stream({
         onmessage: (payment: any) => { // stellar-sdk doesn't have working type for muxed account yet
-          console.log(payment)
           const { to_muxed_id, amount } = payment;
           StellarCustodial.updateAccountBalance(to_muxed_id, amount);
         },
