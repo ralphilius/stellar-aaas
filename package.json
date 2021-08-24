@@ -8,14 +8,16 @@
   "scripts": {
     "test": "PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
     "build": "npx tsc",
-    "dev": "ts-node src/index.ts",
+    "dev": "ts-node -r dotenv/config src/index.ts",
     "init": "npx envdist",
     "start": "npm run build && node app/index.js",
     "watch": "./node_modules/nodemon/bin/nodemon.js"
   },
   "license": "MIT",
   "dependencies": {
+    "@jsier/retrier": "^1.2.4",
     "@replit/database": "^2.0.1",
+    "async-mutex": "^0.3.1",
     "bignumber.js": "^9.0.1",
     "express": "^4.17.1",
     "nanoid": "^3.1.25",
@@ -30,6 +32,7 @@
     "@types/node-fetch": "^2.5.12",
     "chai": "^4.3.4",
     "chai-http": "^4.3.0",
+    "dotenv": "^10.0.0",
     "mocha": "^9.0.3",
     "nodemon": "^2.0.12",
     "ts-node": "^10.2.0",

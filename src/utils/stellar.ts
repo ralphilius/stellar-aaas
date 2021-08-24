@@ -11,6 +11,7 @@ import { getUserById, updateUser } from './database';
 import { usernameForId } from './account';
 import { User } from '../types'
 import { BigNumber } from 'bignumber.js';
+import { Retrier } from '@jsier/retrier';
 
 const server: Server = new StellarSdk.Server("https://horizon-testnet.stellar.org");
 export const CUSTODIAL_KEY: Keypair = StellarSdk.Keypair.fromSecret(process.env.STELLAR_SECRET);
@@ -18,12 +19,12 @@ export const CUSTODIAL_KEY: Keypair = StellarSdk.Keypair.fromSecret(process.env.
 async function loadAccount(account: string | Account | MuxedAccount): Promise<Account> {
   let publicKey = null;
   if (typeof account == "string") {
-    publicKey = account;
-  } else {
-    publicKey = account.accountId();
-    if (account.accountId().startsWith("M")) {
-      publicKey = (account as MuxedAccount).baseAccount().accountId();
-    }
+    account = MuxedAccount.fromAddress(account, "0");
+  }
+
+  publicKey = account.accountId();
+  if (account.accountId().startsWith("M")) {
+    publicKey = (account as MuxedAccount).baseAccount().accountId();
   }
 
   return server.loadAccount(publicKey)
@@ -43,6 +44,17 @@ function isWithinMuxedBase(source: MuxedAccount, dest: MuxedAccount) {
   return source.baseAccount().accountId() == dest.baseAccount().accountId();
 }
 
+function createRetrier() {
+  return new Retrier({
+    limit: 2,
+    stopRetryingIf: (e, attempt) => {
+      const result_codes = ((((e || {}).response || {}).data || {}).extras || {}).result_codes;
+
+      return !result_codes || result_codes.transaction != "tx_bad_seq";
+    }
+  });
+}
+
 class StellarCustodial {
   CUSTODIAL_ACCOUNT: Account;
   static _instance: StellarCustodial;
@@ -58,6 +70,16 @@ class StellarCustodial {
 
   muxedFromAddress(address: string): MuxedAccount {
     return MuxedAccount.fromAddress(address, this.CUSTODIAL_ACCOUNT.sequenceNumber());
+  }
+
+  public async increaseBalance(userId: string, amount: string){
+    const sourceUser = await getUserById(userId);
+    this.updateAccountBalance(userId, BigNumber.sum(sourceUser.balance, amount).toString())
+  }
+
+  public async decreaseBalance(userId: string, amount: string){
+    const sourceUser = await getUserById(userId);
+    this.updateAccountBalance(userId, new BigNumber(sourceUser.balance).minus(amount).toString())
   }
 
   public async updateAccountBalance(accountId: string | undefined, balance: string) {
@@ -86,7 +108,7 @@ class StellarCustodial {
       .stream({
         onmessage: (payment: any) => { // stellar-sdk doesn't have working type for muxed account yet
           const { to_muxed_id, amount } = payment;
-          stellar.updateAccountBalance(to_muxed_id, amount);
+          stellar.increaseBalance(to_muxed_id, amount);
         },
       });
   }
@@ -96,18 +118,18 @@ class StellarCustodial {
       .forTransaction(txHash)
       .call()
       .then(page => {
-        page.records.filter((record: ServerApi.PaymentOperationRecord & { to_muxed?: string, to_muxed_id?: string }) => record.to == this.CUSTODIAL_ACCOUNT.accountId())
-          .forEach(async (record: ServerApi.PaymentOperationRecord & { to_muxed?: string, to_muxed_id?: string }) => {
+        page.records.filter((record: any) => record.to == this.CUSTODIAL_ACCOUNT.accountId())
+          .forEach(async (record: any) => {
             const { to_muxed_id, amount } = record;
             //TODO: For simplicity, check for previous completed deposit is ignored
-            this.updateAccountBalance(to_muxed_id, amount);
+            this.increaseBalance(to_muxed_id, amount);
           });
       })
   }
 
   public async makePayment(source: string, dest: string, amount: string): Promise<any> {
     const sourceMuxed = this.muxedFromAddress(source);
-    const sourceUser = await getUserById(sourceMuxed.id());
+    let sourceUser = await getUserById(sourceMuxed.id());
 
     if (!sourceUser) throw new Error('source-not-found');
 
@@ -120,9 +142,9 @@ class StellarCustodial {
         const destUser = await getUserById(destMuxed.id());
 
         if (!destUser) throw new Error('destination-not-found');
-        
-        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).minus(amount).toString())
-        this.updateAccountBalance(destMuxed.id(), BigNumber.sum(destUser.balance, amount).toString())
+
+        this.decreaseBalance(sourceMuxed.id(), amount);
+        this.increaseBalance(destMuxed.id(), amount);
         return {
           toLedger: false
         }
@@ -130,19 +152,36 @@ class StellarCustodial {
     }
 
     // muxed to outside should reduce balance & revert on failure
-    return loadAccount(sourceMuxed)
+    const retrier = createRetrier();
+    return retrier.resolve((attempt) => {
+      return this.payExternal(sourceMuxed.accountId(), dest, amount);
+    }).then(async (tx) => {
+      this.decreaseBalance(sourceMuxed.id(), amount);
+      return {
+        toLedger: true,
+        data: tx
+      }
+    }).catch(async (e) => {
+      this.increaseBalance(sourceMuxed.id(), amount);
+
+      throw e;
+    });
+  }
+
+  async payExternal(source: string, dest: string, amount: string) {
+    return loadAccount(source)
       .then((accountForPayment: Account) => {
         let payment = StellarSdk.Operation.payment({
-          source: sourceMuxed.accountId(),
+          source: source,
           destination: dest,
           asset: Asset.native(),
           amount: amount,
-          withMuxing: isAnyAccountMuxed(sourceMuxed, dest),
+          withMuxing: isAnyAccountMuxed(source, dest),
         });
 
         let tx = new TransactionBuilder(accountForPayment, {
           networkPassphrase: StellarSdk.Networks.TESTNET,
-          withMuxing: isAnyAccountMuxed(sourceMuxed, dest),
+          withMuxing: isAnyAccountMuxed(source, dest),
           fee: '100',
         })
           .addOperation(payment)
@@ -151,16 +190,7 @@ class StellarCustodial {
 
         tx.sign(CUSTODIAL_KEY);
         return server.submitTransaction(tx);
-      }).then(async (tx) => {
-        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).minus(amount).toString())
-        return {
-          toLedger: true,
-          data: tx
-        }
-      }).catch(async (e) => {
-        this.updateAccountBalance(sourceMuxed.id(), new BigNumber(sourceUser.balance).toString())
-        throw e;
-      });
+      })
   }
 
   public static async initialize(): Promise<StellarCustodial> {

@@ -37,8 +37,11 @@ async function makePayment(req: RequestWithUser, res: Response) {
         //   return res.status(500).end();
       }
       const result_codes = ((((e || {}).response || {}).data || {}).extras || {}).result_codes;
-      if (result_codes.operations?.includes("op_no_destination")) return res.status(404).end();
 
+      // if (result_codes.transaction == "tx_bad_seq") return stellar;
+
+      if (result_codes?.operations?.includes("op_no_destination")) return res.status(404).end();
+      console.log(e)
       res.status(500).json({ error: e.message });
     } else {
       res.status(500).json({ error: e.message });
