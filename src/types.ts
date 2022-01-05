@@ -1,6 +1,6 @@
-import { Request } from 'express';
+import { VercelRequest } from '@vercel/node';
 
-export type RequestWithUser = Request & {
+export type RequestWithUser = VercelRequest & {
   user: {
     id: string
     username?: string

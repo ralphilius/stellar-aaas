@@ -24,8 +24,8 @@ export function securePassword(password: string): { salt: string, hash: string }
   return { salt, hash };
 }
 
-export function accountForApiKey(apiKey: string) {
-  const username = getToken(apiKey);
+export async function accountForApiKey(apiKey: string) {
+  const username = await getToken(apiKey);
   if (!username) return null;
 
   return getUser(username);

@@ -27,6 +27,6 @@ export function setToken(apiKey: string, username: string){
   return db.set(`token-${apiKey}`, userId);
 }
 
-export function getToken(apiKey: string){
+export function getToken(apiKey: string): Promise<string | null> {
   return db.get(`token-${apiKey}`);
 }
