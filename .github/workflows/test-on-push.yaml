@@ -18,9 +18,12 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: 14
+      - name: Print GitHub env variables 🖨
+        run: npx @bahmutov/print-env VERCEL DETA STELLAR
+      - name: "npm install"
+        run: npm install
       - name: "Run unit tests"
         uses: BerniWittmann/background-server-action@v1.0.4
         with:
           command: npm run test
-          build: npm install
           start: npx vercel dev --token ${VERCEL_TOKEN}
