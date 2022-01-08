@@ -1,8 +1,9 @@
-on: push
-
+name: ci
+on: [push, deployment, deployment_status]
 jobs:
   run-test:
     environment: production
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
     runs-on: ubuntu-latest
     env: 
       STELLAR_SECRET: ${{ secrets.STELLAR_SECRET }}
@@ -12,18 +13,22 @@ jobs:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       DETA_PROJECT_KEY: ${{ secrets.DETA_PROJECT_KEY }}
     steps:
-      - name: "Checkout code"
+      - name: Checkout 🛎
         uses: actions/checkout@v1
       - name: "Setup Node 14"
         uses: actions/setup-node@v2
         with:
           node-version: 14
-      - name: Print GitHub env variables 🖨
-        run: npx @bahmutov/print-env VERCEL DETA STELLAR
+      # - name: Print GitHub env variables 🖨
+      #   run: npx @bahmutov/print-env VERCEL DETA STELLAR
       - name: "npm install"
         run: npm install
-      - name: "Run unit tests"
-        uses: BerniWittmann/background-server-action@v1.0.4
-        with:
-          command: npm run test
-          start: npx vercel dev --token ${VERCEL_TOKEN}
+      - name: Run tests 🌲
+        run: npm run test
+        env:
+          VERCEL_BASE_URL: ${{ github.event.deployment_status.target_url }}
+      # - name: "Run unit tests"
+      #   uses: BerniWittmann/background-server-action@v1.0.4
+      #   with:
+      #     command: npm run test
+      #     start: npx vercel dev --token ${VERCEL_TOKEN}

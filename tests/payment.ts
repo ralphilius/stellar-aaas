@@ -20,7 +20,7 @@ const MUSER_RANDOM = '18446744073709551615';
 const MUXED_PUBKEY_RANDOM = new MuxedAccount(account, MUSER_RANDOM).accountId();
 console.log(MUXED_PUBKEY_RANDOM);
 
-const requester = chai.request("http://localhost:3000").keepOpen();
+const requester = chai.request(process.env.VERCEL_BASE_URL || "http://localhost:3000").keepOpen();
 
 describe("payment works", function(){
   this.timeout(10000)

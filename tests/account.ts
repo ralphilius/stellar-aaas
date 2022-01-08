@@ -1,6 +1,7 @@
 //import app from '../src/index';
 import { User } from '../src/types';
 import chai from 'chai';
+import 'chai/register-should';
 import chaiHttp from 'chai-http';
 
 const { Deta } = require("deta")
@@ -10,9 +11,8 @@ const db = deta.Base("users");
 // const db = new Database(process.env.CUSTOM_DB || null);
 
 chai.use(chaiHttp);
-chai.should();
 
-const requester = chai.request("http://localhost:3000").keepOpen();
+const requester = chai.request(process.env.VERCEL_BASE_URL || "http://localhost:3000").keepOpen();
 
 const USERNAME = 'ralphilius';
 const USER_ID = '2772031055288500'
