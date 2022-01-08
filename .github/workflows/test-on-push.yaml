@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 14
       - name: "Run unit tests"
-        uses: BerniWittmann/background-server-action@latest
+        uses: BerniWittmann/background-server-action@v1.0.4
         with:
           command: npm run test
           build: npm install
