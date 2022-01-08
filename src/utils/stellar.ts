@@ -63,7 +63,7 @@ class StellarCustodial {
     this.CUSTODIAL_ACCOUNT = account;
   }
 
-  public usernameForMuxed(username: string): MuxedAccount {
+  public muxedFromUsername(username: string): MuxedAccount {
     const userId = usernameForId(username);
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
   }
@@ -73,23 +73,20 @@ class StellarCustodial {
   }
 
   public async increaseBalance(userId: string, amount: string){
-    const sourceUser = await getUserById(userId);
-    this.updateAccountBalance(userId, BigNumber.sum(sourceUser.balance, amount).toString())
+    const user = await getUserById(userId);
+    await this.updateAccountBalance(userId, BigNumber.sum(user.balance, amount).toString())
   }
 
   public async decreaseBalance(userId: string, amount: string){
-    const sourceUser = await getUserById(userId);
-    this.updateAccountBalance(userId, new BigNumber(sourceUser.balance).minus(amount).toString())
+    const user = await getUserById(userId);
+    await this.updateAccountBalance(userId, new BigNumber(user.balance).minus(amount).toString())
   }
 
   public async updateAccountBalance(accountId: string | undefined, balance: string) {
     const user: User = await getUserById(accountId);
     if (accountId && user) {
       updateUser(accountId, {
-        ...user,
-        ...{
           balance: (new BigNumber(balance)).toString()
-        }
       })
     }
   }
@@ -143,8 +140,8 @@ class StellarCustodial {
 
         if (!destUser) throw new Error('destination-not-found');
 
-        this.decreaseBalance(sourceMuxed.id(), amount);
-        this.increaseBalance(destMuxed.id(), amount);
+        await this.decreaseBalance(sourceMuxed.id(), amount);
+        await this.increaseBalance(destMuxed.id(), amount);
         return {
           toLedger: false
         }
@@ -153,17 +150,17 @@ class StellarCustodial {
 
     // muxed to outside should reduce balance & revert on failure
     const retrier = createRetrier();
-    return retrier.resolve((attempt) => {
+    return retrier.resolve(async (attempt) => {
+      await this.decreaseBalance(sourceMuxed.id(), amount);
       return this.payExternal(sourceMuxed.accountId(), dest, amount);
     }).then(async (tx) => {
-      this.decreaseBalance(sourceMuxed.id(), amount);
       return {
         toLedger: true,
         data: tx
       }
     }).catch(async (e) => {
-      this.increaseBalance(sourceMuxed.id(), amount);
-
+      console.error(e);
+      await this.increaseBalance(sourceMuxed.id(), amount);
       throw e;
     });
   }

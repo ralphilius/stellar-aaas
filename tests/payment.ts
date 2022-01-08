@@ -1,30 +1,34 @@
-import app from '../src/index';
 import chai from 'chai';
 import chaiHttp from 'chai-http';
 // const StellarSdk = require("stellar-sdk");
-import StellarSdk from 'stellar-sdk';
-import { Keypair } from 'stellar-sdk';
+import StellarSdk, { MuxedAccount } from 'stellar-sdk';
+import { Keypair, Account } from 'stellar-sdk';
+import { usernameForId } from '../src/utils/account';
+
 chai.use(chaiHttp);
 const expect = chai.expect;
 
-const PUBKEY = "GCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPNOBC";
-const MUSERNAME_ME = 'ralphilius';
-const MPUBKEY_ME = "MCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPMAAJ3ES4MW2YWTROC";
+const USERNAME_ME = 'ralphilius';
+const keypair = Keypair.fromSecret(process.env.STELLAR_SECRET as string);
+const account = new Account(keypair.publicKey(), "0");
 
-const MUSERNAME_TYLER = "kalepail";
-const MPUBKEY_TYLER = "MCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPMAAAAFZEP67DPW6I2"
+const USERNAME_TYLER = "kalepail";
+const MUXED_PUBKEY_TYLER = new MuxedAccount(account, usernameForId(USERNAME_TYLER)).accountId();
+console.log(MUXED_PUBKEY_TYLER);
 
-const MPUBKEY_RANDOM = "MCRYYMHDTKHEDRBJVVIQDMO6FADIY3QWLGPQKNBRBJY5R76XBYLPN7777777777774Y7C";
 const MUSER_RANDOM = '18446744073709551615';
+const MUXED_PUBKEY_RANDOM = new MuxedAccount(account, MUSER_RANDOM).accountId();
+console.log(MUXED_PUBKEY_RANDOM);
+
+const requester = chai.request("http://localhost:3000").keepOpen();
 
 describe("payment works", function(){
-  this.timeout(30000)
+  this.timeout(10000)
   let apiKey: string = '', balance = 100;
-  let requester = chai.request(app).keepOpen();
   before(async () => {
     return requester.post('/api/login')
       .set('content-type', 'application/json')
-      .send({ username: MUSERNAME_ME, password: "123456" })
+      .send({ username: USERNAME_ME, password: "123456" })
       .then((res: any) => {
         apiKey = res.body['apiKey'];
       });
@@ -33,7 +37,7 @@ describe("payment works", function(){
   before(() => {
     return requester.post('/api/register')
       .set('content-type', 'application/json')
-      .send({ username: MUSERNAME_TYLER, password: "123456" });
+      .send({ username: USERNAME_TYLER, password: "123456" });
   });
 
   after(() => {
@@ -43,18 +47,17 @@ describe("payment works", function(){
   describe("payment made to unmuxed account", () => {
     let pair1: Keypair, pair2: Keypair;
     before(function(){
-      //this.timeout(10000);
-      pair1 = StellarSdk.Keypair.random();
-      pair2 = StellarSdk.Keypair.random();
+      pair1 = Keypair.random();
+      pair2 = Keypair.random();
+      console.log(pair1.publicKey(), pair2.publicKey())
       
-      chai.request(`https://friendbot.stellar.org`)
+      return chai.request(`https://friendbot.stellar.org`)
         .get(`?addr=${encodeURIComponent(pair1.publicKey())}`)
-        .end()
 
     })
 
     it("should pay to existing account", function(done) {
-      //this.timeout(20000);
+      this.timeout(20000);
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
@@ -73,19 +76,18 @@ describe("payment works", function(){
         });
     })
 
-    it("should not pay to non-existent customer", function(done) {
-      //this.timeout(10000);
-      requester.post('/api/pay')
-        .set("authorization", `Bearer ${apiKey}`)
-        .set('content-type', 'application/json')
-        .send({ destination: pair2.publicKey(), amount: "1" })
-        .then((res) => {
-          expect(res).to.have.status(404);
-          done();
-        }).catch(err => {
-          throw err
-        });
-    })
+    // it("should not pay to non-existent customer", function(done) {
+    //   requester.post('/api/pay')
+    //     .set("authorization", `Bearer ${apiKey}`)
+    //     .set('content-type', 'application/json')
+    //     .send({ destination: pair2.publicKey(), amount: "1" })
+    //     .then((res) => {
+    //       expect(res).to.have.status(404);
+    //       done();
+    //     }).catch(err => {
+    //       throw err
+    //     });
+    // })
 
   })
 
@@ -95,7 +97,7 @@ describe("payment works", function(){
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
-        .send({ destination: MPUBKEY_TYLER, amount: "1" })
+        .send({ destination: MUXED_PUBKEY_TYLER, amount: "1" })
         .then((res) => {
           expect(res).to.have.status(204);
           requester.get('/api/info')
@@ -115,7 +117,7 @@ describe("payment works", function(){
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
-        .send({ destination: MPUBKEY_TYLER, amount: "-1" })
+        .send({ destination: MUXED_PUBKEY_TYLER, amount: "-1" })
         .then((res) => {
           expect(res).to.have.status(400);
           done();
@@ -129,7 +131,7 @@ describe("payment works", function(){
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
-        .send({ destination: MPUBKEY_TYLER, amount: "200" })
+        .send({ destination: MUXED_PUBKEY_TYLER, amount: "200" })
         .then((res) => {
           expect(res).to.have.status(409);
           done();
@@ -143,7 +145,7 @@ describe("payment works", function(){
       requester.post('/api/pay')
         .set("authorization", `Bearer ${apiKey}`)
         .set('content-type', 'application/json')
-        .send({ destination: MPUBKEY_RANDOM, amount: "1" })
+        .send({ destination: MUXED_PUBKEY_RANDOM, amount: "1" })
         .then((res) => {
           expect(res).to.have.status(404);
           done();
@@ -157,8 +159,4 @@ describe("payment works", function(){
   describe("payment made to muxed account outside", () => {
 
   });
-
-
-
-
 })

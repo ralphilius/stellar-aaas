@@ -1,5 +1,4 @@
 import * as crypto from "crypto";
-import { getUser, getToken } from './database'
 const { customAlphabet } = require('nanoid');
 const nanoid = customAlphabet('0123456789', 36);
 const USERNAME_REGEX =  /^[A-Za-z0-9]{3,12}$/; //^[a-zA-Z0-9]+$/;
@@ -22,11 +21,4 @@ export function securePassword(password: string): { salt: string, hash: string }
   let salt = crypto.randomBytes(16).toString('hex');
   let hash = crypto.pbkdf2Sync(password, salt, 1000, 64, `sha512`).toString(`hex`);
   return { salt, hash };
-}
-
-export async function accountForApiKey(apiKey: string) {
-  const username = await getToken(apiKey);
-  if (!username) return null;
-
-  return getUser(username);
 }

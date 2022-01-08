@@ -1,7 +1,6 @@
 import type { VercelResponse } from '@vercel/node';
 import handleErrors from '../src/middlewares/error-handler';
 import { RequestWithUser } from '../src/types';
-import { getUserById } from '../src/utils/database';
 import validateHeader from '../src/middlewares/header-validator';
 import auth from '../src/middlewares/authenticator';
 import { BigNumber } from 'bignumber.js';
