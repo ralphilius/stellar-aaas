@@ -3,7 +3,7 @@
   "main": "app/index.js",
   "author": "ralphilius <ralphilius@gmail.com>",
   "engines": {
-    "node": ">=14.0.0"
+    "node": "14.x"
   },
   "scripts": {
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' -r dotenv/config --exit",
@@ -23,7 +23,7 @@
     "nanoid": "^3.1.25",
     "node-fetch": "^2.6.1",
     "sodium-native": "^2.3.0",
-    "stellar-sdk": "^8.2.5"
+    "stellar-sdk": "^9.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.21",
