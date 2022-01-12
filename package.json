@@ -2,9 +2,6 @@
   "name": "stellar-aaas",
   "main": "app/index.js",
   "author": "ralphilius <ralphilius@gmail.com>",
-  "engines": {
-    "node": "14.x"
-  },
   "scripts": {
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' -r dotenv/config --exit",
     "init": "npx envdist",
@@ -16,13 +13,11 @@
     "@jsier/retrier": "^1.2.4",
     "@replit/database": "^2.0.1",
     "@vercel/node": "^1.12.1",
-    "async-mutex": "^0.3.1",
     "bignumber.js": "^9.0.1",
     "deta": "^1.0.1",
     "express": "^4.17.1",
     "nanoid": "^3.1.25",
     "node-fetch": "^2.6.1",
-    "sodium-native": "^2.3.0",
     "stellar-sdk": "^9.1.0"
   },
   "devDependencies": {
