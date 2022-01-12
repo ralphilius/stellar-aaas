@@ -18,6 +18,7 @@ const USERNAME = 'ralphilius';
 const USER_ID = '2772031055288500'
 
 describe("account registration works", function () {
+  var apiKey: string = '';
   this.timeout(30000);
   before(function() {
     return new Promise<void>(async (resolve) => {
@@ -71,17 +72,17 @@ describe("account registration works", function () {
         .send({ username: USERNAME, password: "123456" })
         .end((err, res) => {
           res.should.have.status(200);
-          res.body.should.have.property('apiKey')
+          res.body.should.have.property('apiKey');
+          apiKey = res.body.apiKey;
           done();
         });
     })
   })
 
   describe('GET /api/info', () => {
-    var apiKey: string = ''
-    beforeEach(async () => {
-      return db.get(`${USER_ID}`).then((user: User) => apiKey = user['apiKey']);
-    })
+    // beforeEach(async () => {
+    //   return db.get(`${USER_ID}`).then((user: User) => apiKey = user['apiKey']);
+    // })
 
     it("should return account information", (done) => {
       requester.get('/api/info')
