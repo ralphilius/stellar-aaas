@@ -5,7 +5,7 @@
   "scripts": {
     "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' -r dotenv/config --exit",
     "init": "npx envdist",
-    "start": "npm run build && node app/index.js",
+    "start": "tsc",
     "watch": "./node_modules/nodemon/bin/nodemon.js"
   },
   "license": "MIT",
