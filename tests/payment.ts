@@ -49,7 +49,6 @@ describe("payment works", function(){
     before(function(){
       pair1 = Keypair.random();
       pair2 = Keypair.random();
-      console.log(pair1.publicKey(), pair2.publicKey())
       
       return chai.request(`https://friendbot.stellar.org`)
         .get(`?addr=${encodeURIComponent(pair1.publicKey())}`)
