@@ -1,0 +1,13 @@
+name: 1-minute-cron
+on:
+  schedule:
+    - cron: '* * * * *'
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call API to update user balances
+        run: |
+          curl --request POST \
+          --url 'https://stellar-aaas.vercel.app/api/deposit' \
+          --header 'Authorization: Bearer ${{ secrets.API_SECRET_KEY }}'
