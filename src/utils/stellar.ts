@@ -73,26 +73,43 @@ class StellarCustodial {
   }
 
   public async increaseBalance(userId: string, amount: string){
+    if(!userId || !amount) return;
     const user = await getUserById(userId);
-    await this.updateAccountBalance(userId, BigNumber.sum(user.balance, amount).toString())
+    if(user) await this.updateAccountBalance(user, BigNumber.sum(user.balance, amount).toString())
   }
 
   public async decreaseBalance(userId: string, amount: string){
+    if(!userId || !amount) return;
     const user = await getUserById(userId);
-    await this.updateAccountBalance(userId, new BigNumber(user.balance).minus(amount).toString())
+    if(user) await this.updateAccountBalance(user, new BigNumber(user.balance).minus(amount).toString())
   }
 
-  public async updateAccountBalance(accountId: string | undefined, balance: string) {
-    const user: User = await getUserById(accountId);
-    if (accountId && user) {
-      updateUser(accountId, {
+  public async updateAccountBalance(account: User | null | undefined, balance: string) {
+    if(!account || !balance) return;
+    if (account) {
+      try {
+        await updateUser(account.key, {
           balance: (new BigNumber(balance)).toString()
-      })
+        })
+      } catch (e) {
+        console.error(e);
+      }
+      
     }
   }
 
   public muxedFromId(userId: string): MuxedAccount {
     return new MuxedAccount(this.CUSTODIAL_ACCOUNT, userId);
+  }
+
+  public transactions(cursor?: string){
+    return server.payments()
+      .forAccount(CUSTODIAL_KEY.publicKey())
+      .join("transactions")
+      .cursor(cursor || "now")
+      .limit(100)
+      .order("desc")
+      .call();
   }
 
   public static async listenForPayements() {

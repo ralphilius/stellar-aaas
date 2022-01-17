@@ -44,7 +44,7 @@ const handler = async (req: RequestWithUser, res: VercelResponse) => {
       // if (result_codes.transaction == "tx_bad_seq") return stellar;
 
       if (result_codes && result_codes.operations && result_codes.operations.includes("op_no_destination")) return res.status(404).end();
-      console.log(e)
+      console.error(e)
       res.status(500).json({ error: e.message });
     } else {
       res.status(500).json({ error: e.message });

@@ -5,7 +5,7 @@ const handleErrors = (fn: (req: RequestWithUser, res: VercelResponse) => void) =
   try {
     return await fn(req, res)
   } catch (err: any) {
-    console.log(err)
+    console.error(err)
     res.status(err.code).send(err.message);
   }
 }

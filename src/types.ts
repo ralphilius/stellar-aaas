@@ -8,6 +8,7 @@ export type RequestWithUser = VercelRequest & {
 }
 
 export type User = {
+  key: string
   salt: string
   hash: string
   apiKey: string
