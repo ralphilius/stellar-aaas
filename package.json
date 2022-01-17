@@ -2,20 +2,23 @@
   "name": "stellar-aaas",
   "main": "app/index.js",
   "author": "ralphilius <ralphilius@gmail.com>",
-  "engines": {
-    "node": ">=14.0.0"
-  },
   "scripts": {
-    "test": "CUSTOM_DB='https://replit-database-proxy.ralphilius.repl.co' PORT=3001 env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' --exit",
-    "start": "tsc && node app/index.js"
+    "test": "env TS_NODE_COMPILER_OPTIONS='{\"module\": \"commonjs\" }' mocha -r ts-node/register 'tests/**/*.ts' -r dotenv/config --exit",
+    "init": "npx envdist",
+    "start": "tsc",
+    "watch": "./node_modules/nodemon/bin/nodemon.js"
   },
   "license": "MIT",
   "dependencies": {
+    "@jsier/retrier": "^1.2.4",
     "@replit/database": "^2.0.1",
+    "@vercel/node": "^1.12.1",
+    "bignumber.js": "^9.0.1",
+    "deta": "^1.0.1",
     "express": "^4.17.1",
     "nanoid": "^3.1.25",
     "node-fetch": "^2.6.1",
-    "stellar-sdk": "^8.2.5"
+    "stellar-sdk": "^9.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.21",
@@ -25,7 +28,23 @@
     "@types/node-fetch": "^2.5.12",
     "chai": "^4.3.4",
     "chai-http": "^4.3.0",
+    "dotenv": "^10.0.0",
     "mocha": "^9.0.3",
-    "ts-node": "^10.2.0"
+    "nodemon": "^2.0.12",
+    "ts-node": "^10.2.0",
+    "typescript": "^4.3.5"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      ".git",
+      "node_modules"
+    ],
+    "watch": [
+      "src"
+    ],
+    "exec": "npm run dev",
+    "ext": "ts"
   }
 }

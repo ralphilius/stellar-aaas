@@ -5,6 +5,11 @@ Run this command inside project folder
 ```
 npm install
 ```
+Generate `.env` file with below command then follow on screen guide:
+```
+npm run init
+```
+
 Start the server with
 ```
 npm start
